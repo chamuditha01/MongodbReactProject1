@@ -4,7 +4,7 @@ const multer = require('multer');
 const { MongoClient } = require('mongodb');
 
 const app = express();
-const PORT = 5000;
+const PORT = 5001;
 
 // Middleware for handling CORS
 app.use(cors());
@@ -24,14 +24,17 @@ async function getDb() {
 }
 
 // Endpoint to insert a new person
-app.post('/insertPerson', upload.single('image'), async (req, res) => {
+app.post('/PP', upload.single('image'), async (req, res) => {
   try {
     const db = await getDb();
     const { name, age } = req.body;
     const imageBuffer = req.file.buffer; // File buffer
 
+    const statusDefaultValue = 'unselected';
+
     // Insert the new document into the MongoDB collection
-    await db.collection('collection1').insertOne({ name, age, image: imageBuffer });
+    await db.collection('PP').insertOne({ name, age, image: imageBuffer, status: statusDefaultValue });
+
 
     res.status(201).json({ success: true, message: 'Person inserted successfully' });
   } catch (err) {
@@ -40,10 +43,22 @@ app.post('/insertPerson', upload.single('image'), async (req, res) => {
   }
 });
 
+// Update status of a person
+app.put('/updateStatus/:id/:status', (req, res) => {
+  const { id, status } = req.params;
+  const index = persons.findIndex(person => person._id == id);
+  if (index !== -1) {
+    persons[index].status = status;
+    res.send('Status updated successfully');
+  } else {
+    res.status(404).send('Person not found');
+  }
+});
+
 app.get('/getPersons', async (req, res) => {
   try {
     const db = await getDb();
-    const persons = await db.collection('collection1').find({}).toArray();
+    const persons = await db.collection('PP').find({}).toArray();
     res.status(200).json(persons);
   } catch (err) {
     console.error('Error fetching persons from MongoDB:', err);

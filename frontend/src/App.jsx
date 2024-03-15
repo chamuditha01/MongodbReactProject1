@@ -1,6 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useEffect } from 'react';
 
 function App() {
   const [name, setName] = useState('');
@@ -18,7 +17,7 @@ function App() {
       formData.append('image', image);
 
       // Send a POST request to the backend API
-      await axios.post('http://localhost:5000/insertPerson', formData, {
+      await axios.post('http://localhost:5001/PP', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
@@ -28,23 +27,43 @@ function App() {
       setName('');
       setAge('');
       setImage(null);
+
+      // Fetch updated data after adding a new person
+      fetchData();
     } catch (error) {
       console.error('Error inserting person:', error);
       setMessage('Failed to insert person');
     }
   };
 
-  useEffect(() => {
-    // Fetch data from the backend API
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('http://localhost:5000/getPersons');
-        setPersons(response.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
-    };
+  const fetchData = async () => {
+    try {
+      const response = await axios.get('http://localhost:5001/getPersons');
+      setPersons(response.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
+const handleStatusChange = async (personId, currentStatus) => {
+  try {
+    const newStatus = currentStatus === 'selected' ? 'unselected' : 'selected';
+    await axios.put(`http://localhost:5001/updateStatus/${personId}/${newStatus}`);
+
+    // Update the local state after successful update in the database
+    setPersons(prevPersons =>
+      prevPersons.map(person =>
+        person._id === personId ? { ...person, status: newStatus } : person
+      )
+    );
+  } catch (error) {
+    console.error('Error updating status:', error.response.data);
+  }
+};
+
+  
+  useEffect(() => {
+    // Fetch data from the backend API when the component mounts
     fetchData();
   }, []);
 
@@ -72,6 +91,9 @@ function App() {
             <p>Name: {person.name}</p>
             <p>Age: {person.age}</p>
             <img src={`data:image/jpeg;base64,${person.image}`} alt={person.name} />
+            <button onClick={() => handleStatusChange(person._id, person.status)}>
+              {person.status} : Tap to change
+            </button>
           </li>
         ))}
       </ul>
